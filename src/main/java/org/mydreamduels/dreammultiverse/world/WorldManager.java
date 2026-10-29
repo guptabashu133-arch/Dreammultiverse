@@ -45,8 +45,9 @@ import java.util.regex.Pattern;
  */
 public final class WorldManager {
 
-    public static final String FOLIA_NO_LOAD = "Folia does not allow loading or creating worlds while the server is running - "
-            + "only the worlds the server itself loads (level-name + its nether/end) are available on Folia.";
+    public static final String FOLIA_NO_LOAD = "This server (Folia) does not allow loading or creating worlds while it is running - "
+            + "only the worlds it loads itself (level-name + its nether/end) exist. Use Paper for extra worlds, "
+            + "or see the README for Folia options (bukkit.yml void generator).";
     public static final String FOLIA_NO_UNLOAD = "Folia does not allow unloading worlds while the server is running.";
 
     private static final Pattern VALID_NAME = Pattern.compile("[A-Za-z0-9_.\\-]{1,64}");
@@ -101,10 +102,6 @@ public final class WorldManager {
 
         for (MVWorld mv : worlds.values()) {
             if (mv.isLoaded() || !mv.isAutoLoad()) continue;
-            if (PlatformSupport.isFolia()) {
-                plugin.getLogger().warning("World '" + mv.getName() + "' is configured but not loaded - Folia cannot load extra worlds.");
-                continue;
-            }
             String error = loadNow(mv);
             if (error != null) plugin.getLogger().warning("Could not load world '" + mv.getName() + "': " + error);
         }
@@ -203,7 +200,6 @@ public final class WorldManager {
 
     /** Must be called on the global/main thread. Returns an error message, or null on success. */
     public String create(String name, World.Environment env, Long seed, String type, String generator, boolean structures, boolean adjustSpawn) {
-        if (PlatformSupport.isFolia()) return FOLIA_NO_LOAD;
         String invalid = validateNewName(name);
         if (invalid != null) return invalid;
         if (new File(Bukkit.getWorldContainer(), name).exists()) {
@@ -222,7 +218,6 @@ public final class WorldManager {
     }
 
     public String importWorld(String name, World.Environment env, String generator) {
-        if (PlatformSupport.isFolia()) return FOLIA_NO_LOAD;
         if (Bukkit.getWorld(name) != null) {
             MVWorld existing = get(name);
             if (existing == null) {
@@ -261,7 +256,6 @@ public final class WorldManager {
         MVWorld mv = get(name);
         if (mv == null) return "Unknown world '" + name + "'.";
         if (mv.isLoaded()) return "'" + mv.getName() + "' is already loaded.";
-        if (PlatformSupport.isFolia()) return FOLIA_NO_LOAD;
         String error = loadNow(mv);
         if (error == null) mv.applyTo(mv.getBukkitWorld());
         return error;
@@ -422,10 +416,6 @@ public final class WorldManager {
     // ------------------------------------------------------------------ clone
 
     public void cloneWorld(String sourceName, String targetName, Consumer<String> done) {
-        if (PlatformSupport.isFolia()) {
-            done.accept(FOLIA_NO_LOAD);
-            return;
-        }
         MVWorld source = get(sourceName);
         World sourceWorld = Bukkit.getWorld(sourceName);
         File sourceFolder = sourceWorld != null ? sourceWorld.getWorldFolder() : new File(Bukkit.getWorldContainer(), sourceName);
@@ -467,6 +457,14 @@ public final class WorldManager {
                 }
                 clone.setAdjustSpawn(false);
                 String error = loadNew(clone);
+                if (error != null) {
+                    plugin.io().submit(() -> {
+                        try {
+                            FileUtil.deleteRecursively(targetFolder);
+                        } catch (IOException ignored) {
+                        }
+                    });
+                }
                 if (error == null && source != null) clone.setAdjustSpawn(source.isAdjustSpawn());
                 if (error == null) save();
                 done.accept(error);
@@ -649,13 +647,11 @@ public final class WorldManager {
         }
         if (count > 0) {
             save();
-            if (!PlatformSupport.isFolia()) {
-                for (MVWorld mv : worlds.values()) {
-                    if (!mv.isLoaded() && mv.isAutoLoad()) {
-                        String error = loadNow(mv);
-                        if (error != null) log.add("Could not load '" + mv.getName() + "': " + error);
-                        else mv.applyTo(mv.getBukkitWorld());
-                    }
+            for (MVWorld mv : worlds.values()) {
+                if (!mv.isLoaded() && mv.isAutoLoad()) {
+                    String error = loadNow(mv);
+                    if (error != null) log.add("Could not load '" + mv.getName() + "': " + error);
+                    else mv.applyTo(mv.getBukkitWorld());
                 }
             }
         }
