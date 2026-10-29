@@ -61,6 +61,24 @@ public final class PendingResets {
         return null;
     }
 
+    /** Whole world folder, removed on the next startup (Folia datapack worlds). */
+    public synchronized String scheduleFolderDelete(File folder) {
+        if (!FileUtil.isInside(folder, Bukkit.getWorldContainer()) || FileUtil.isInside(Bukkit.getWorldContainer(), folder)) {
+            return "Unexpected world folder location: " + folder;
+        }
+        for (World other : Bukkit.getWorlds()) {
+            if (!other.getWorldFolder().equals(folder) && FileUtil.isInside(other.getWorldFolder(), folder)) {
+                return "World '" + other.getName() + "' is stored inside " + folder + " - refusing to delete it.";
+            }
+        }
+        YamlConfiguration yaml = YamlConfiguration.loadConfiguration(file);
+        List<String> all = new ArrayList<>(yaml.getStringList("folders"));
+        if (!all.contains(folder.getAbsolutePath())) all.add(folder.getAbsolutePath());
+        yaml.set("folders", all);
+        plugin.io().write(file, yaml.saveToString());
+        return null;
+    }
+
     public synchronized boolean cancel(World world) {
         YamlConfiguration yaml = YamlConfiguration.loadConfiguration(file);
         List<String> all = new ArrayList<>(yaml.getStringList("folders"));

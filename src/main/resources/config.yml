@@ -4,12 +4,11 @@
 #  Runs on Paper, Folia and Spigot.
 #
 #  FOLIA NOTE: Folia itself does not allow creating, loading or
-#  unloading worlds while the server is running, so on Folia only
-#  the worlds the server loads on its own (level-name + its nether
-#  and end) exist. /mv regen still works there - it resets the
-#  terrain on the next restart. Everything else (teleports, world
-#  rules, portals, nether linking, inventories, signs) is fully
-#  supported on Folia.
+#  unloading worlds while the server is running. On Folia, /mv create
+#  therefore sets the new world up to load at the next restart (see
+#  startup-worlds), and /mv regen resets terrain on the next restart.
+#  Everything else (teleports, world rules, portals, nether linking,
+#  inventories, signs) is fully supported on Folia.
 # ============================================================
 
 prefix: "&8[&bDreamMV&8] &r"
@@ -36,6 +35,10 @@ prefix-chat-format: "&8[&r%world%&8]&r "
 confirm-timeout-seconds: 15
 # Automatically manage the server's own worlds (and any loaded by other plugins).
 auto-import-default-worlds: true
+# Servers that can't add worlds while running (Folia): /mv create writes the world as a
+# datapack dimension instead, and it appears after the next restart (named
+# <level-name>_dmv_<name>, with <name> as its alias so /mv tp <name> works).
+startup-worlds: true
 # Folia only: /mv purge removes mobs within this many blocks of each player
 # (Folia gives plugins no safe way to touch every entity in a world at once).
 folia-purge-radius: 64

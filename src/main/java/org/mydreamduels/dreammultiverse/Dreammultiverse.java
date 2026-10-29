@@ -28,6 +28,7 @@ import org.mydreamduels.dreammultiverse.teleport.AccessListener;
 import org.mydreamduels.dreammultiverse.teleport.TeleportService;
 import org.mydreamduels.dreammultiverse.util.IoQueue;
 import org.mydreamduels.dreammultiverse.util.Msg;
+import org.mydreamduels.dreammultiverse.world.DatapackWorlds;
 import org.mydreamduels.dreammultiverse.world.PendingResets;
 import org.mydreamduels.dreammultiverse.world.WorldChangeTracker;
 import org.mydreamduels.dreammultiverse.world.WorldListener;
@@ -45,6 +46,7 @@ public class Dreammultiverse extends JavaPlugin {
     private EconomyHook economy;
     private WorldManager worlds;
     private PendingResets pendingResets;
+    private DatapackWorlds datapackWorlds;
     private WorldChangeTracker tracker;
     private WorldListener worldListener;
     private AccessChecker access;
@@ -74,6 +76,7 @@ public class Dreammultiverse extends JavaPlugin {
         io = new IoQueue(getLogger());
         economy = new EconomyHook(getLogger());
         worlds = new WorldManager(this);
+        datapackWorlds = new DatapackWorlds(this);
         tracker = new WorldChangeTracker(this);
         worldListener = new WorldListener(this);
         access = new AccessChecker(this);
@@ -128,7 +131,7 @@ public class Dreammultiverse extends JavaPlugin {
         getLogger().info("Enabled on " + PlatformSupport.name() + " with " + worlds.all().size() + " worlds, "
                 + portals.all().size() + " portals.");
         if (PlatformSupport.isFolia()) {
-            getLogger().info("Folia: worlds can't be created/loaded/unloaded at runtime; everything else is fully supported.");
+            getLogger().info("Folia: /mv create sets new worlds up to load at the next restart; everything else is fully supported.");
         }
     }
 
@@ -203,6 +206,7 @@ public class Dreammultiverse extends JavaPlugin {
     public EconomyHook economy() { return economy; }
     public WorldManager worlds() { return worlds; }
     public PendingResets pendingResets() { return pendingResets; }
+    public DatapackWorlds datapackWorlds() { return datapackWorlds; }
     public WorldChangeTracker tracker() { return tracker; }
     public WorldListener worldListener() { return worldListener; }
     public AccessChecker access() { return access; }

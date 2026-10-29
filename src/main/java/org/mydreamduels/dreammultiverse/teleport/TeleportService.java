@@ -105,7 +105,11 @@ public final class TeleportService {
                             finish(done, false);
                             return;
                         }
-                        go(initiator, player, target, velocity, ok -> {
+                        Location arrive = target.clone();
+                        if (arrive.getY() < target.getWorld().getMinHeight() + 2 || arrive.getY() > target.getWorld().getMaxHeight() - 2) {
+                            arrive.setY(VoidGenerator.SPAWN_Y);
+                        }
+                        go(initiator, player, arrive, velocity, ok -> {
                             if (Boolean.TRUE.equals(ok) && player.getAllowFlight()) {
                                 plugin.scheduler().runForEntity(player, () -> player.setFlying(true));
                             }

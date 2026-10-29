@@ -50,6 +50,9 @@ public final class WorldManager {
             + "or see the README for Folia options (bukkit.yml void generator).";
     public static final String FOLIA_NO_UNLOAD = "Folia does not allow unloading worlds while the server is running.";
 
+    /** create() result prefix: not loaded yet, will exist after a restart (message follows). */
+    public static final String PENDING = "~";
+
     private static final Pattern VALID_NAME = Pattern.compile("[A-Za-z0-9_.\\-]{1,64}");
 
     private final Dreammultiverse plugin;
@@ -193,15 +196,21 @@ public final class WorldManager {
     // ------------------------------------------------------------------ create / import / load
 
     public String validateNewName(String name) {
+        if (plugin.datapackWorlds().isPending(name)) return "'" + name + "' is already set up - restart the server to load it.";
         if (!VALID_NAME.matcher(name).matches()) return "World names may only use letters, numbers, _ - and .";
         if (get(name) != null || Bukkit.getWorld(name) != null) return "A world called '" + name + "' already exists.";
         return null;
     }
 
-    /** Must be called on the global/main thread. Returns an error message, or null on success. */
+    /**
+     * Must be called on the global/main thread. Returns null when created, an error, or
+     * PENDING + message when the server can't add worlds at runtime and the world was set
+     * up as a datapack dimension instead (Folia) - it appears after the next restart.
+     */
     public String create(String name, World.Environment env, Long seed, String type, String generator, boolean structures, boolean adjustSpawn) {
         String invalid = validateNewName(name);
         if (invalid != null) return invalid;
+        if (find(name) != null) return "A world called '" + name + "' already exists.";
         if (new File(Bukkit.getWorldContainer(), name).exists()) {
             return "A folder called '" + name + "' already exists - use /mv import to load it.";
         }
@@ -214,7 +223,35 @@ public final class WorldManager {
         mv.setStructures(structures && !empty);
         // nothing to stand on in a void world, so there's no "safe" spawn to move to
         mv.setAdjustSpawn(adjustSpawn && !empty);
-        return loadNew(mv);
+        String error = loadNew(mv);
+        if (FOLIA_NO_LOAD.equals(error) && plugin.getConfig().getBoolean("startup-worlds", true)) {
+            return createAtStartup(name, env, seed, type, generator, empty);
+        }
+        return error;
+    }
+
+    /** Folia path - see DatapackWorlds. */
+    private String createAtStartup(String name, World.Environment env, Long seed, String type, String generator, boolean empty) {
+        DatapackWorlds packs = plugin.datapackWorlds();
+        String worldName = packs.worldName(name);
+        if (get(worldName) != null || Bukkit.getWorld(worldName) != null) return "A world called '" + name + "' already exists.";
+        String dimType = empty ? "VOID" : (type == null ? "NORMAL" : type);
+        String pluginGenerator = empty ? null : generator;
+        String error = packs.create(name, env, dimType, empty ? VoidGenerator.biomeOf(VoidGenerator.normalize(generator)) : null, pluginGenerator);
+        if (error != null) return error;
+
+        MVWorld mv = new MVWorld(worldName);
+        mv.setEnvironment(env);
+        mv.setAlias(name);
+        mv.setWorldType(empty ? "NORMAL" : (type == null ? "NORMAL" : type));
+        mv.setGenerator(empty ? VoidGenerator.normalize(generator) : pluginGenerator);
+        mv.setStructures(!empty);
+        mv.setAdjustSpawn(!empty);
+        worlds.put(key(worldName), mv);
+        save();
+        return PENDING + "This server can't add worlds while running, so '" + name + "' was set up to load at startup. "
+                + "Restart the server, then use /mv tp " + name + " (its full name is " + worldName + ")."
+                + (seed != null ? " Note: worlds made this way share the main world's seed, so -s was ignored." : "");
     }
 
     public String importWorld(String name, World.Environment env, String generator) {
@@ -387,6 +424,20 @@ public final class WorldManager {
             return;
         }
         if (PlatformSupport.isFolia()) {
+            if (plugin.datapackWorlds().isDatapackWorld(loaded.getName())) {
+                plugin.datapackWorlds().remove(loaded.getName());
+                String err = plugin.pendingResets().scheduleFolderDelete(folder);
+                if (err != null) {
+                    done.accept(err);
+                    return;
+                }
+                if (mv != null) {
+                    worlds.remove(key(mv.getName()));
+                    save();
+                }
+                done.accept(PENDING + "'" + loaded.getName() + "' will be gone after the next restart.");
+                return;
+            }
             done.accept(FOLIA_NO_UNLOAD + " Use /mv regen " + loaded.getName() + " to reset it on the next restart instead.");
             return;
         }

@@ -155,8 +155,10 @@ public final class MvCommand {
                     Msg.send(s, "&7Creating " + (empty ? "empty void " : "") + "world &e" + name + "&7...");
                     plugin.scheduler().runGlobal(() -> {
                         String error = wm.create(name, env, seed, type, gen, structures, adjust);
-                        reply(s, error, "World '" + name + "' created! Use /mv tp " + name);
-                        if (error == null && empty) {
+                        boolean pending = error != null && error.startsWith(WorldManager.PENDING);
+                        if (pending) Msg.send(s, "&e" + error.substring(1));
+                        else reply(s, error, "World '" + name + "' created! Use /mv tp " + name);
+                        if ((error == null || pending) && empty) {
                             Msg.send(s, "&7It has &eno blocks at all&7. Go there in creative/flying (&e/mv tp " + name
                                     + "&7), paste your build (e.g. &e//paste&7), stand on it and run &e/mv setspawn&7.");
                         }
@@ -200,8 +202,15 @@ public final class MvCommand {
                     out.addAll(wm.importableFolders());
                     return out;
                 })
-                .exec((s, a) -> plugin.confirms().ask(s, "&c&lDELETE &e'" + a[0] + "' and all of its files permanently?",
-                        () -> plugin.scheduler().runGlobal(() -> wm.delete(a[0], err -> reply(s, err, "Deleted '" + a[0] + "'."))))));
+                .exec((s, a) -> {
+                    MVWorld target = plugin.worlds().find(a[0]);
+                    String name = target != null ? target.getName() : a[0];
+                    plugin.confirms().ask(s, "&c&lDELETE &e'" + name + "' and all of its files permanently?",
+                            () -> plugin.scheduler().runGlobal(() -> wm.delete(name, err -> {
+                                if (err != null && err.startsWith(WorldManager.PENDING)) Msg.send(s, "&e" + err.substring(1));
+                                else reply(s, err, "Deleted '" + name + "'.");
+                            })));
+                }));
 
         router.add(Sub.of("clone").aliases("copy").perm(P + "clone").min(2).usage("<world> <new name>").desc("Copy a world")
                 .tab((s, a) -> a.length == 1 ? worldNames() : List.of())
@@ -481,7 +490,7 @@ public final class MvCommand {
                     Msg.raw(s, "&7Vault: " + (plugin.economy().hasVault() ? "&ahooked" : "&8no") + " &7PlaceholderAPI: "
                             + (plugin.hasPlaceholders() ? "&ahooked" : "&8no"));
                     if (PlatformSupport.isFolia()) {
-                        Msg.raw(s, "&eFolia: creating/loading/unloading worlds at runtime is not possible; /mv regen resets on restart.");
+                        Msg.raw(s, "&eFolia: /mv create adds worlds at the next restart; unload isn't possible; /mv regen resets on restart.");
                     }
                 }));
     }

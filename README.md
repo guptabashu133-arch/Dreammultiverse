@@ -8,22 +8,29 @@ Build: `mvn package` -> `target/Dreammultiverse.jar`
 ## Folia
 
 Everything runs on Folia's region threads (teleports with `teleportAsync`, block changes on
-the owning region, per-player tasks on the player's own scheduler). One limit comes from
-Folia itself, not from this plugin: **Folia refuses to create, load or unload worlds while
-the server is running** (`createWorld`/`unloadWorld` throw `UnsupportedOperationException`).
-So on Folia:
+the owning region, per-player tasks on the player's own scheduler). Folia itself refuses to
+create, load or unload worlds **while the server is running**, so on Folia:
 
-| Works on Folia | Not possible on Folia |
-|---|---|
-| Teleports, all destinations, anchors, spawns | `/mv create`, `/mv import`, `/mv load`, `/mv unload`, `/mv clone` |
-| Every world property (`/mv modify`), gamerules | Deleting a *loaded* world |
-| Portals, nether/end linking, sign portals | |
-| Inventories, entry fees, access, player limits | |
-| `/mv regen` -> terrain is reset on the next restart | |
+- **`/mv create` still works, but the world appears after a restart.** Folia (like Paper) loads
+  every datapack dimension at startup as a real world, so Dreammultiverse writes the new world
+  into `<level-name>/datapacks/dreammultiverse/`. After the restart it is a normal world named
+  `<level-name>_dmv_<name>` with `<name>` as its alias - `/mv tp spawn`, `/mv modify spawn ...`
+  all work with the short name. `-t void`, `-t flat`, `large_biomes`, `amplified`, nether/end and
+  `-g Plugin` generators (via `bukkit.yml`) are supported; these worlds share the main world's seed.
+- `/mv delete` on such a world removes it at the next restart.
+- `/mv regen` resets terrain on the next restart.
+- Not possible on Folia: `/mv import`, `/mv load`, `/mv unload`, `/mv clone`.
 
-Only the worlds the server loads itself (`level-name` plus its nether and end) exist on Folia.
-Folia also doesn't fire `PlayerChangedWorldEvent`, `PlayerRespawnEvent` or `PlayerPortalEvent`,
-so Dreammultiverse watches world changes, respawns and portals itself there.
+Example (Folia):
+```
+/mv create spawn normal -t void
+/mv create duels normal -t void
+(restart the server)
+/mv tp spawn      -> paste your build, /mv setspawn
+```
+
+Folia doesn't fire `PlayerChangedWorldEvent`, `PlayerRespawnEvent` or `PlayerPortalEvent`, so
+Dreammultiverse watches world changes, respawns and portals itself there.
 
 ## Commands
 
