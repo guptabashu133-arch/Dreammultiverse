@@ -18,6 +18,7 @@ import org.bukkit.entity.Mob;
 import org.mydreamduels.dreammultiverse.Dreammultiverse;
 import org.mydreamduels.dreammultiverse.command.CommandRouter.UsageException;
 import org.mydreamduels.dreammultiverse.destination.Destination;
+import org.mydreamduels.dreammultiverse.generator.VoidGenerator;
 import org.mydreamduels.dreammultiverse.platform.PlatformSupport;
 import org.mydreamduels.dreammultiverse.util.GameRules;
 import org.mydreamduels.dreammultiverse.util.LocationUtil;
@@ -131,10 +132,10 @@ public final class MvCommand {
         WorldManager wm = plugin.worlds();
 
         router.add(Sub.of("create").perm(P + "create").min(2)
-                .usage("<name> <normal|nether|end> [-s seed] [-g generator] [-t normal|flat|large_biomes|amplified] [-n] [-a]")
+                .usage("<name> <normal|nether|end> [-s seed] [-g generator] [-t normal|flat|void|large_biomes|amplified] [-n] [-a]")
                 .desc("Create a new world (-n no structures, -a don't adjust spawn)")
                 .tab((s, a) -> a.length == 2 ? Tabs.of("normal", "nether", "end")
-                        : List.of("-s", "-g", "-t", "-n", "-a", "flat", "amplified", "large_biomes", "normal"))
+                        : List.of("-s", "-g", "-t", "-n", "-a", "void", "flat", "amplified", "large_biomes", "normal"))
                 .exec((s, a) -> {
                     Flags f = Flags.parse(a, Set.of("s", "g", "t"), Map.of("seed", "s", "generator", "g", "type", "t",
                             "nostructures", "n", "no-structures", "n", "noadjust", "a", "no-adjust-spawn", "a"));
@@ -145,12 +146,21 @@ public final class MvCommand {
                     WorldType parsed = WorldManager.parseType(f.get("t") == null ? "NORMAL" : f.get("t"));
                     if (parsed == null) throw new UsageException("Unknown world type '" + f.get("t") + "'.");
                     String type = parsed.name();
-                    String gen = f.get("g");
+                    boolean voidType = "void".equalsIgnoreCase(f.get("t"));
+                    String gen = voidType ? "void" : f.get("g");
+                    if (voidType && f.get("g") != null) throw new UsageException("-t void and -g can't be combined (void IS the generator).");
+                    boolean empty = VoidGenerator.isVoidSpec(gen);
                     boolean structures = !f.has("n");
                     boolean adjust = !f.has("a");
-                    Msg.send(s, "&7Creating world &e" + name + "&7...");
-                    plugin.scheduler().runGlobal(() -> reply(s, wm.create(name, env, seed, type, gen, structures, adjust),
-                            "World '" + name + "' created! Use /mv tp " + name));
+                    Msg.send(s, "&7Creating " + (empty ? "empty void " : "") + "world &e" + name + "&7...");
+                    plugin.scheduler().runGlobal(() -> {
+                        String error = wm.create(name, env, seed, type, gen, structures, adjust);
+                        reply(s, error, "World '" + name + "' created! Use /mv tp " + name);
+                        if (error == null && empty) {
+                            Msg.send(s, "&7It has &eno blocks at all&7. Go there in creative/flying (&e/mv tp " + name
+                                    + "&7), paste your build (e.g. &e//paste&7), stand on it and run &e/mv setspawn&7.");
+                        }
+                    });
                 }));
 
         router.add(Sub.of("import").perm(P + "import").min(2).usage("<folder> <normal|nether|end> [-g generator]")
@@ -435,6 +445,7 @@ public final class MvCommand {
                     Msg.raw(s, "&7Environments: &enormal&7, &enether&7, &eend");
                     List<String> types = new ArrayList<>();
                     for (WorldType t : WorldType.values()) types.add(t.name().toLowerCase(Locale.ROOT));
+                    types.add("void (completely empty, built in)");
                     Msg.raw(s, "&7World types (-t): &e" + String.join("&7, &e", types));
                 }));
 

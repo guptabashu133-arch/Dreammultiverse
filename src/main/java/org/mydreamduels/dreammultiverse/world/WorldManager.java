@@ -12,6 +12,7 @@ import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.mydreamduels.dreammultiverse.Dreammultiverse;
+import org.mydreamduels.dreammultiverse.generator.VoidGenerator;
 import org.mydreamduels.dreammultiverse.platform.PlatformSupport;
 import org.mydreamduels.dreammultiverse.util.FileUtil;
 import org.mydreamduels.dreammultiverse.util.GameRules;
@@ -212,9 +213,11 @@ public final class WorldManager {
         mv.setEnvironment(env);
         mv.setSeed(seed);
         mv.setWorldType(type == null ? "NORMAL" : type.toUpperCase(Locale.ROOT));
-        mv.setGenerator(generator);
-        mv.setStructures(structures);
-        mv.setAdjustSpawn(adjustSpawn);
+        boolean empty = VoidGenerator.isVoidSpec(generator);
+        mv.setGenerator(empty ? VoidGenerator.normalize(generator) : generator);
+        mv.setStructures(structures && !empty);
+        // nothing to stand on in a void world, so there's no "safe" spawn to move to
+        mv.setAdjustSpawn(adjustSpawn && !empty);
         return loadNew(mv);
     }
 
@@ -233,7 +236,7 @@ public final class WorldManager {
         if (!new File(folder, "level.dat").isFile()) return "No world folder (with a level.dat) called '" + name + "' was found.";
         MVWorld mv = new MVWorld(name);
         mv.setEnvironment(env);
-        mv.setGenerator(generator);
+        mv.setGenerator(VoidGenerator.isVoidSpec(generator) ? VoidGenerator.normalize(generator) : generator);
         mv.setAdjustSpawn(false);
         return loadNew(mv);
     }
@@ -269,7 +272,10 @@ public final class WorldManager {
         if (mv.getSeed() != null) creator.seed(mv.getSeed());
         WorldType type = parseType(mv.getWorldType());
         if (type != null) creator.type(type);
-        if (mv.getGenerator() != null && !mv.getGenerator().isBlank()) {
+        if (VoidGenerator.isVoidSpec(mv.getGenerator())) {
+            VoidGenerator gen = new VoidGenerator(VoidGenerator.biomeOf(mv.getGenerator()));
+            creator.generator(gen).biomeProvider(gen.getDefaultBiomeProvider(null)).generateStructures(false);
+        } else if (mv.getGenerator() != null && !mv.getGenerator().isBlank()) {
             ChunkGenerator gen = WorldCreator.getGeneratorForName(mv.getName(), mv.getGenerator(), Bukkit.getConsoleSender());
             if (gen == null) return "Generator '" + mv.getGenerator() + "' was not found (is its plugin installed?).";
             creator.generator(gen);
@@ -291,6 +297,7 @@ public final class WorldManager {
      */
     public static WorldType parseType(String name) {
         if (name == null) return null;
+        if (name.equalsIgnoreCase("void")) return WorldType.NORMAL; // the void generator decides the terrain
         String n = name.toUpperCase(Locale.ROOT).replace('-', '_');
         try {
             return WorldType.valueOf(n);

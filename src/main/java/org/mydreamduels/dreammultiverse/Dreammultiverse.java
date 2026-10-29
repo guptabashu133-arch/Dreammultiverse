@@ -172,6 +172,12 @@ public class Dreammultiverse extends JavaPlugin {
         cmd.setTabCompleter((sender, command, alias, args) -> router.tabFor(sender, sub, args));
     }
 
+    /** Lets bukkit.yml and other plugins use "Dreammultiverse" / "Dreammultiverse:<biome>" as a void generator. */
+    @Override
+    public org.bukkit.generator.ChunkGenerator getDefaultWorldGenerator(String worldName, String id) {
+        return new org.mydreamduels.dreammultiverse.generator.VoidGenerator(id == null || id.equalsIgnoreCase("void") ? null : id);
+    }
+
     /** Re-reads values that are cached outside getConfig(). */
     public void applyConfig() {
         Msg.setPrefix(getConfig().getString("prefix", "&8[&bDreamMV&8] &r"));

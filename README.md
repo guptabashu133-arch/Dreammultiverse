@@ -30,7 +30,7 @@ so Dreammultiverse watches world changes, respawns and portals itself there.
 ### `/mv` (Core) - aliases `/dmv`, `/dreammultiverse`
 | Command | What it does |
 |---|---|
-| `/mv create <name> <normal\|nether\|end> [-s seed] [-g generator[:id]] [-t normal\|flat\|large_biomes\|amplified] [-n] [-a]` | New world (`-n` no structures, `-a` don't adjust spawn) |
+| `/mv create <name> <normal\|nether\|end> [-s seed] [-g generator[:id]] [-t normal\|flat\|void\|large_biomes\|amplified] [-n] [-a]` | New world (`-n` no structures, `-a` don't adjust spawn, `-t void` completely empty) |
 | `/mv import <folder> <env> [-g generator]` | Load an existing world folder |
 | `/mv load <world>` / `/mv unload <world> [--nosave]` | Load / unload |
 | `/mv remove <world>` | Stop managing it (files kept) |
@@ -55,6 +55,27 @@ Shortcuts: `/mvtp`, `/mvspawn`, `/mvsetspawn`, `/mvlist`, `/mvwho`, `/mvcoord`, 
 `animalexceptions`, `monsterexceptions`, `hunger`, `autoheal`, `allowflight`, `weather`, `playerlimit`,
 `entryfee`, `currency` (`money` via Vault, or an item like `DIAMOND`), `respawnworld`, `bedrespawn`,
 `adjustspawn`, `autoload`, `hidden`, `portalform` (`all/nether/end/none`), `scale`, `blacklist`.
+
+### Empty void worlds (built in - no VoidGen needed)
+`/mv create spawn normal -t void` makes a world with **no blocks at all** (no bedrock, mobs or
+structures), ready for pasting a spawn/lobby/arena with WorldEdit:
+
+1. `/mv create spawn normal -t void`
+2. Go into creative, `/mv tp spawn` (you arrive flying at 0, 64, 0)
+3. `//paste` your build, stand on it, `/mv setspawn`
+
+Pick the biome with `-g void:<biome>`, e.g. `-g void:the_void` (default `plains`, so grass and
+leaves keep their normal colours). Until a spawn exists, players who can't fly are not sent there
+(they'd fall into the void).
+
+The generator is also registered as a normal Bukkit generator called `Dreammultiverse`, so it works
+from `bukkit.yml` too - including for **Folia**, where it's the only way to get a void world
+(set it before the world is first generated):
+```yaml
+worlds:
+  spawn:            # = level-name in server.properties
+    generator: Dreammultiverse:void
+```
 
 ### Destinations
 | Format | Meaning |

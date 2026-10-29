@@ -1,5 +1,6 @@
 package org.mydreamduels.dreammultiverse.teleport;
 
+import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Entity;
@@ -8,6 +9,7 @@ import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.util.Vector;
 import org.mydreamduels.dreammultiverse.Dreammultiverse;
 import org.mydreamduels.dreammultiverse.destination.Destination;
+import org.mydreamduels.dreammultiverse.generator.VoidGenerator;
 import org.mydreamduels.dreammultiverse.platform.PlatformSupport;
 import org.mydreamduels.dreammultiverse.util.Msg;
 import org.mydreamduels.dreammultiverse.util.SafeLocations;
@@ -87,12 +89,33 @@ public final class TeleportService {
                 return;
             }
             findSafe(target, found -> {
-                if (found == null) {
-                    Msg.err(initiator, "No safe spot was found near the destination - teleport cancelled.");
-                    finish(done, false);
+                if (found != null) {
+                    go(initiator, player, found, velocity, done);
                     return;
                 }
-                go(initiator, player, found, velocity, done);
+                MVWorld mv = plugin.worlds().get(target.getWorld());
+                if (mv != null && VoidGenerator.isVoidSpec(mv.getGenerator())) {
+                    // Nothing built there yet. Fine for builders who can fly - they'd just fall otherwise.
+                    plugin.scheduler().runForEntity(player, () -> {
+                        boolean flyer = player.getGameMode() == GameMode.CREATIVE || player.getGameMode() == GameMode.SPECTATOR
+                                || player.getAllowFlight();
+                        if (!flyer) {
+                            Msg.err(initiator, "There's nothing to stand on there yet (empty void world). "
+                                    + "Fly there in creative, paste a build and use /mv setspawn.");
+                            finish(done, false);
+                            return;
+                        }
+                        go(initiator, player, target, velocity, ok -> {
+                            if (Boolean.TRUE.equals(ok) && player.getAllowFlight()) {
+                                plugin.scheduler().runForEntity(player, () -> player.setFlying(true));
+                            }
+                            finish(done, ok);
+                        });
+                    });
+                    return;
+                }
+                Msg.err(initiator, "No safe spot was found near the destination - teleport cancelled.");
+                finish(done, false);
             });
         });
     }
