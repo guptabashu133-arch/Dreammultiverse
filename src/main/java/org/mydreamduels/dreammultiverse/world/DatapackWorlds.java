@@ -39,8 +39,16 @@ public final class DatapackWorlds {
         return Bukkit.getWorlds().get(0);
     }
 
+    /**
+     * The save's root folder (where level.dat and datapacks/ live). Not getWorldFolder():
+     * since MC 26.1 that points at world/dimensions/minecraft/overworld instead.
+     */
+    private File saveRoot() {
+        return new File(Bukkit.getWorldContainer(), main().getName());
+    }
+
     private File packDir() {
-        return new File(main().getWorldFolder(), "datapacks/dreammultiverse");
+        return new File(saveRoot(), "datapacks/dreammultiverse");
     }
 
     private File dimensionFile(String id) {
@@ -88,6 +96,36 @@ public final class DatapackWorlds {
         return null;
     }
 
+    /**
+     * Startup check: re-writes dimensions for managed datapack worlds that aren't loaded and whose
+     * file is missing (e.g. written by an older version to the wrong folder). Returns their names.
+     */
+    public java.util.List<String> repair(java.util.Collection<MVWorld> managed) {
+        java.util.List<String> fixed = new java.util.ArrayList<>();
+        File legacy = new File(main().getWorldFolder(), "datapacks/dreammultiverse");
+        if (!legacy.getAbsoluteFile().equals(packDir().getAbsoluteFile()) && legacy.isDirectory()) {
+            try {
+                FileUtil.deleteRecursively(legacy);
+            } catch (IOException e) {
+                plugin.getLogger().warning("Could not remove misplaced datapack " + legacy + ": " + e);
+            }
+        }
+        String prefix = main().getName() + "_" + NAMESPACE + "_";
+        for (MVWorld mv : managed) {
+            if (!mv.getName().startsWith(prefix) || mv.isLoaded()) continue;
+            String id = mv.getName().substring(prefix.length());
+            if (dimensionFile(id).isFile()) continue;
+            boolean empty = org.mydreamduels.dreammultiverse.generator.VoidGenerator.isVoidSpec(mv.getGenerator());
+            World.Environment env = mv.getEnvironment() == World.Environment.NETHER || mv.getEnvironment() == World.Environment.THE_END
+                    ? mv.getEnvironment() : World.Environment.NORMAL;
+            String error = create(id, env, empty ? "VOID" : mv.getWorldType(),
+                    empty ? org.mydreamduels.dreammultiverse.generator.VoidGenerator.biomeOf(mv.getGenerator()) : null, null);
+            if (error == null) fixed.add(mv.getName());
+            else plugin.getLogger().warning("Could not set up " + mv.getName() + ": " + error);
+        }
+        return fixed;
+    }
+
     /** Removes the dimension so it's no longer loaded after the next restart. */
     public boolean remove(String worldName) {
         String prefix = main().getName() + "_" + NAMESPACE + "_";
@@ -111,9 +149,9 @@ public final class DatapackWorlds {
         if (t.equals("VOID")) {
             String biome = voidBiome == null || voidBiome.isBlank() ? "minecraft:plains"
                     : (voidBiome.contains(":") ? voidBiome : "minecraft:" + voidBiome).toLowerCase(Locale.ROOT);
-            // flat with no layers and no features = not a single block
+            // flat with a single layer of air and no features = not a single block (vanilla's own void preset shape)
             generator = "{\"type\":\"minecraft:flat\",\"settings\":{\"biome\":\"" + biome
-                    + "\",\"layers\":[],\"lakes\":false,\"features\":false,\"structure_overrides\":[]}}";
+                    + "\",\"layers\":[{\"block\":\"minecraft:air\",\"height\":1}],\"lakes\":false,\"features\":false,\"structure_overrides\":[]}}";
         } else if (t.equals("FLAT")) {
             generator = "{\"type\":\"minecraft:flat\",\"settings\":{\"biome\":\"minecraft:plains\",\"layers\":["
                     + "{\"block\":\"minecraft:bedrock\",\"height\":1},{\"block\":\"minecraft:dirt\",\"height\":2},"
@@ -138,8 +176,10 @@ public final class DatapackWorlds {
     /** pack.mcmeta in whichever schema this server version expects (it changed in 1.21.9). */
     private void writePackMeta() throws IOException {
         int format = packFormat();
+        // The new schema takes a range: declare everything from its introduction onwards, so a
+        // server update (or a wrong guess about the current number) never disables the pack.
         String body = format >= 82
-                ? "\"description\": \"Dreammultiverse worlds\", \"min_format\": " + format + ", \"max_format\": " + format
+                ? "\"description\": \"Dreammultiverse worlds\", \"min_format\": 82, \"max_format\": 9999"
                 : "\"description\": \"Dreammultiverse worlds\", \"pack_format\": " + format;
         FileUtil.writeAtomically(new File(packDir(), "pack.mcmeta"), "{\n  \"pack\": { " + body + " }\n}\n");
     }

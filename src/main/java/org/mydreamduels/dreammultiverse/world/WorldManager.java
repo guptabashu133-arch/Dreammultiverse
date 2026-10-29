@@ -103,8 +103,15 @@ public final class WorldManager {
             }
         }
 
+        List<String> repaired = plugin.datapackWorlds().repair(worlds.values());
         for (MVWorld mv : worlds.values()) {
             if (mv.isLoaded() || !mv.isAutoLoad()) continue;
+            if (plugin.datapackWorlds().isDatapackWorld(mv.getName())) {
+                plugin.getLogger().warning("World '" + mv.getName() + "' (" + mv.getAlias() + ") is not loaded yet"
+                        + (repaired.contains(mv.getName()) ? " - its datapack was just (re)written, restart the server once more."
+                        : " - check the start of the server log for datapack errors."));
+                continue;
+            }
             String error = loadNow(mv);
             if (error != null) plugin.getLogger().warning("Could not load world '" + mv.getName() + "': " + error);
         }
