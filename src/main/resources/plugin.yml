@@ -1,0 +1,179 @@
+name: Dreammultiverse
+version: '${project.version}'
+main: org.mydreamduels.dreammultiverse.Dreammultiverse
+api-version: '1.21'
+author: javacoder99
+description: Multiverse-Core, Portals, NetherPortals, Inventories and SignPortals in one - for Paper, Folia and Spigot.
+softdepend: [Vault, PlaceholderAPI]
+# Runs on Paper, Folia AND plain Spigot - see platform/PlatformSupport.
+folia-supported: true
+commands:
+  dreammultiverse:
+    description: World management (Multiverse-Core)
+    usage: /mv help
+    aliases: [mv, dmv]
+  dreamportals:
+    description: Custom portals (Multiverse-Portals)
+    usage: /mvp help
+    aliases: [mvp, mvportal, dmvp]
+  dreamnetherportals:
+    description: Nether/end portal linking (Multiverse-NetherPortals)
+    usage: /mvnp help
+    aliases: [mvnp, dmvnp]
+  dreaminventories:
+    description: Per-world inventories (Multiverse-Inventories)
+    usage: /mvinv help
+    aliases: [mvinv, mvi, dmvinv]
+  mvtp:
+    description: Shortcut for /mv tp
+    usage: /mvtp [player] <destination>
+  mvspawn:
+    description: Shortcut for /mv spawn
+    usage: /mvspawn [player]
+  mvsetspawn:
+    description: Shortcut for /mv setspawn
+    usage: /mvsetspawn
+  mvlist:
+    description: Shortcut for /mv list
+    usage: /mvlist
+  mvwho:
+    description: Shortcut for /mv who
+    usage: /mvwho [world]
+  mvcoord:
+    description: Shortcut for /mv coord
+    usage: /mvcoord
+  mvconfirm:
+    description: Shortcut for /mv confirm
+    usage: /mvconfirm
+
+permissions:
+  dreammultiverse.admin:
+    description: Everything except the bypass.* / inventory.bypass permissions
+    default: op
+    children:
+      dreammultiverse.command.*: true
+      dreammultiverse.teleport.self.*: true
+      dreammultiverse.teleport.other.*: true
+      dreammultiverse.access.*: true
+      dreammultiverse.exempt.*: true
+      dreammultiverse.portal.*: true
+      dreammultiverse.netherportals.*: true
+      dreammultiverse.inventory.group: true
+      dreammultiverse.inventory.info: true
+      dreammultiverse.signportal.create: true
+      dreammultiverse.signportal.use: true
+      dreammultiverse.bypass.playerlimit: true
+      dreammultiverse.bypass.blacklist: true
+
+  dreammultiverse.command.*:
+    default: op
+    children:
+      dreammultiverse.command.create: true
+      dreammultiverse.command.import: true
+      dreammultiverse.command.load: true
+      dreammultiverse.command.unload: true
+      dreammultiverse.command.remove: true
+      dreammultiverse.command.delete: true
+      dreammultiverse.command.clone: true
+      dreammultiverse.command.regen: true
+      dreammultiverse.command.list: true
+      dreammultiverse.command.list.hidden: true
+      dreammultiverse.command.info: true
+      dreammultiverse.command.tp: true
+      dreammultiverse.command.spawn: true
+      dreammultiverse.command.spawn.other: true
+      dreammultiverse.command.setspawn: true
+      dreammultiverse.command.coord: true
+      dreammultiverse.command.who: true
+      dreammultiverse.command.modify: true
+      dreammultiverse.command.gamerule: true
+      dreammultiverse.command.purge: true
+      dreammultiverse.command.anchor: true
+      dreammultiverse.command.bed: true
+      dreammultiverse.command.generators: true
+      dreammultiverse.command.reload: true
+      dreammultiverse.command.version: true
+  dreammultiverse.command.spawn:
+    default: true
+  dreammultiverse.command.list:
+    default: true
+  dreammultiverse.command.who:
+    default: true
+  dreammultiverse.command.coord:
+    default: true
+
+  dreammultiverse.teleport.self.*:
+    description: /mv tp yourself to any destination type
+    default: op
+    children:
+      dreammultiverse.teleport.self.w: true
+      dreammultiverse.teleport.self.e: true
+      dreammultiverse.teleport.self.pl: true
+      dreammultiverse.teleport.self.a: true
+      dreammultiverse.teleport.self.b: true
+      dreammultiverse.teleport.self.p: true
+      dreammultiverse.teleport.self.ca: true
+  dreammultiverse.teleport.other.*:
+    description: /mv tp other players to any destination type
+    default: op
+    children:
+      dreammultiverse.teleport.other.w: true
+      dreammultiverse.teleport.other.e: true
+      dreammultiverse.teleport.other.pl: true
+      dreammultiverse.teleport.other.a: true
+      dreammultiverse.teleport.other.b: true
+      dreammultiverse.teleport.other.p: true
+      dreammultiverse.teleport.other.ca: true
+
+  # Per world: dreammultiverse.access.<world> (only checked when enforce-access is true)
+  dreammultiverse.access.*:
+    default: op
+  # Per world: dreammultiverse.exempt.<world> - no entry fee
+  dreammultiverse.exempt.*:
+    default: op
+  dreammultiverse.bypass.playerlimit:
+    default: op
+  dreammultiverse.bypass.blacklist:
+    default: op
+  dreammultiverse.bypass.gamemode:
+    description: Keep your gamemode when entering worlds
+    default: false
+  dreammultiverse.bypass.flight:
+    description: Keep flight in worlds with allowflight=false
+    default: false
+
+  dreammultiverse.portal.*:
+    default: op
+    children:
+      dreammultiverse.portal.create: true
+      dreammultiverse.portal.remove: true
+      dreammultiverse.portal.modify: true
+      dreammultiverse.portal.list: true
+      dreammultiverse.portal.access.*: true
+      dreammultiverse.portal.exempt.*: true
+  # Per portal: dreammultiverse.portal.access.<portal> (only checked when portals.enforce-access is true)
+  dreammultiverse.portal.access.*:
+    default: true
+  # Per portal: dreammultiverse.portal.exempt.<portal> - free use of paid portals
+  dreammultiverse.portal.exempt.*:
+    default: op
+
+  dreammultiverse.netherportals.*:
+    default: op
+    children:
+      dreammultiverse.netherportals.link: true
+      dreammultiverse.netherportals.show: true
+
+  dreammultiverse.inventory.group:
+    description: Create/edit inventory groups
+    default: op
+  dreammultiverse.inventory.info:
+    default: op
+  dreammultiverse.inventory.bypass:
+    description: Inventories are never swapped for this player
+    default: false
+
+  dreammultiverse.signportal.create:
+    default: op
+  dreammultiverse.signportal.use:
+    default: true

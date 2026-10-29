@@ -1,0 +1,82 @@
+# ============================================================
+#  Dreammultiverse - Multiverse-Core, Portals, NetherPortals,
+#  Inventories and SignPortals in one plugin.
+#  Runs on Paper, Folia and Spigot.
+#
+#  FOLIA NOTE: Folia itself does not allow creating, loading or
+#  unloading worlds while the server is running, so on Folia only
+#  the worlds the server loads on its own (level-name + its nether
+#  and end) exist. /mv regen still works there - it resets the
+#  terrain on the next restart. Everything else (teleports, world
+#  rules, portals, nether linking, inventories, signs) is fully
+#  supported on Folia.
+# ============================================================
+
+prefix: "&8[&bDreamMV&8] &r"
+
+# ---------------- Core ----------------
+# Players need dreammultiverse.access.<world> to enter a world.
+enforce-access: false
+# Set players to the world's gamemode when they enter it
+# (dreammultiverse.bypass.gamemode to skip).
+enforce-gamemode: true
+# Take flight away in worlds with allowflight=false (survival/adventure only).
+enforce-flight: true
+# Brand new players spawn in this world ("" = the server's main world).
+first-spawn-override: true
+first-spawn-world: ""
+# If set, EVERY join teleports to this world's spawn (e.g. a lobby). "" = off.
+join-destination: ""
+# Search for a safe spot (no lava / suffocation / void) when teleporting.
+safe-teleport: true
+# Put the world's alias in front of chat messages.
+prefix-chat: false
+prefix-chat-format: "&8[&r%world%&8]&r "
+# Seconds you have to type /mv confirm.
+confirm-timeout-seconds: 15
+# Automatically manage the server's own worlds (and any loaded by other plugins).
+auto-import-default-worlds: true
+# Folia only: /mv purge removes mobs within this many blocks of each player
+# (Folia gives plugins no safe way to touch every entity in a world at once).
+folia-purge-radius: 64
+
+# ---------------- Portals (/mvp) ----------------
+portals:
+  # Selection wand: left-click = position 1, right-click = position 2.
+  wand: WOODEN_AXE
+  # Biggest allowed portal, in blocks.
+  max-volume: 4096
+  # Milliseconds before the same player can use a portal again.
+  cooldown-ms: 1000
+  # Push players back out of portals they're not allowed to use.
+  bounce-back: true
+  # Players need dreammultiverse.portal.access.<portal>.
+  enforce-access: false
+  # Safe-teleport setting for newly created portals.
+  default-safe-teleport: true
+  # Minecarts/boats (with players) travel through portals too.
+  teleport-vehicles: true
+
+# ---------------- Nether / End portals (/mvnp) ----------------
+nether-portals:
+  enabled: true
+  # Naming convention used when no explicit /mvnp link exists:
+  #   survival <-> survival_nether, survival <-> survival_the_end
+  nether-suffix: "_nether"
+  end-suffix: "_the_end"
+  # Let mobs and items use nether/end portals.
+  teleport-entities: true
+  send-no-destination-message: true
+
+# ---------------- Inventories (/mvinv) ----------------
+inventories:
+  enabled: true
+  # Separate inventories for survival/creative/adventure/spectator.
+  separate-gamemode-inventories: false
+
+# ---------------- Sign portals ----------------
+# Line 1: [mv]   Lines 2-3: destination (e.g. "survival" or "a:shop")
+sign-portals:
+  enabled: true
+  # Redstone next to the sign teleports players standing near it.
+  redstone: true
