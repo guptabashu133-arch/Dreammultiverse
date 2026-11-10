@@ -76,6 +76,12 @@ inventories:
   enabled: true
   # Separate inventories for survival/creative/adventure/spectator.
   separate-gamemode-inventories: false
+  # Worlds that are in NO group (e.g. a spawn/lobby world you made with /mv create)
+  # use the "default" group, so inventory, ender chest, XP, health etc. are the same
+  # there and in the normal overworld. Set false to give every ungrouped world its own
+  # separate inventory. To keep a world separate on purpose, put it in its own group:
+  #   /mvinv create minigames minigame_world
+  share-ungrouped-worlds: true
 
 # ---------------- Sign portals ----------------
 # Line 1: [mv]   Lines 2-3: destination (e.g. "survival" or "a:shop")

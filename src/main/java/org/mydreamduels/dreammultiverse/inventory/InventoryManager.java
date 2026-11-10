@@ -48,6 +48,8 @@ public final class InventoryManager {
     private final File playersDir;
     private final Map<String, InvGroup> groups = new ConcurrentHashMap<>();
     private final Map<UUID, YamlConfiguration> cache = new ConcurrentHashMap<>();
+    /** Stand-in "default" group (shares everything) used when groups.yml has none. */
+    private final InvGroup fallbackDefault = new InvGroup("default");
 
     public InventoryManager(Dreammultiverse plugin) {
         this.plugin = plugin;
@@ -58,6 +60,14 @@ public final class InventoryManager {
 
     public boolean enabled() {
         return plugin.getConfig().getBoolean("inventories.enabled", true);
+    }
+
+    /**
+     * Worlds that are in no group (e.g. a spawn/lobby world made with /mv create after the
+     * first start) share the "default" group's data instead of getting their own inventory.
+     */
+    private boolean shareUngrouped() {
+        return plugin.getConfig().getBoolean("inventories.share-ungrouped-worlds", true);
     }
 
     private boolean perGamemode() {
@@ -130,6 +140,10 @@ public final class InventoryManager {
     public List<InvGroup> groupsOf(String world) {
         List<InvGroup> out = new ArrayList<>();
         for (InvGroup g : groups.values()) if (g.contains(world)) out.add(g);
+        if (out.isEmpty() && shareUngrouped()) {
+            InvGroup def = groups.get("default");
+            out.add(def != null ? def : fallbackDefault);
+        }
         return out;
     }
 

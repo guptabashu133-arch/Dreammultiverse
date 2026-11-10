@@ -159,7 +159,10 @@ public final class InventoryCommand {
                     }
                     List<InvGroup> groups = inv.groupsOf(a[0]);
                     if (groups.isEmpty()) Msg.send(s, "&e" + a[0] + " &7is in no group - it has its own separate inventory.");
-                    for (InvGroup grp : groups) Msg.raw(s, "&e" + a[0] + " &7is in &b" + grp.getName() + " &7(shares " + describe(grp) + ")");
+                    boolean listed = false;
+                    for (InvGroup grp : groups) listed |= grp.contains(a[0]);
+                    if (!groups.isEmpty() && !listed) Msg.send(s, "&e" + a[0] + " &7is in no group, so it uses &bdefault &7(inventories.share-ungrouped-worlds).");
+                    else for (InvGroup grp : groups) Msg.raw(s, "&e" + a[0] + " &7is in &b" + grp.getName() + " &7(shares " + describe(grp) + ")");
                 }));
 
         router.add(Sub.of("gamemode").perm("dreammultiverse.admin").min(1).usage("<true|false>")

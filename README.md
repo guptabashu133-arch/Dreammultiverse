@@ -111,6 +111,8 @@ Without a link, `name` <-> `name_nether` and `name` <-> `name_the_end` are paire
 `gamemode <true|false>` (separate inventories per gamemode), `reload`.
 Sharables: `inventory`, `armor`, `offhand`, `ender_chest`, `health`, `hunger`, `experience`, `potions`, `bed_spawn`.
 On first start the server's own overworld/nether/end are put in a `default` group that shares everything.
+Worlds in no group (e.g. a spawn world created later) also use `default` while
+`inventories.share-ungrouped-worlds` is `true` (the default); put a world in its own group to keep it separate.
 
 ### Sign portals
 Line 1 `[mv]`, lines 2-3 the destination. Right-click to use, or power it with redstone to send
