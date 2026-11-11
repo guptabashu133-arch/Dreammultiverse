@@ -73,6 +73,10 @@ nether-portals:
 
 # ---------------- Inventories (/mvinv) ----------------
 inventories:
+  # shared = players keep the SAME inventory, armor, ender chest, XP, health, hunger and effects
+  #          in every world (like vanilla). Nothing is ever swapped.
+  # groups = separate inventories per world / group - set them up with /mvinv.
+  mode: shared
   enabled: true
   # Separate inventories for survival/creative/adventure/spectator.
   separate-gamemode-inventories: false

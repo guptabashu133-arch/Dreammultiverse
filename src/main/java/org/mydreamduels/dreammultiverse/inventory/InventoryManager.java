@@ -57,7 +57,10 @@ public final class InventoryManager {
     }
 
     public boolean enabled() {
-        return plugin.getConfig().getBoolean("inventories.enabled", true);
+        // mode "shared" (default): one inventory, ender chest, XP, health, hunger... in EVERY world,
+        // exactly like vanilla - nothing is swapped. "groups": per-world / per-group inventories.
+        String mode = plugin.getConfig().getString("inventories.mode", "shared");
+        return "groups".equalsIgnoreCase(mode) && plugin.getConfig().getBoolean("inventories.enabled", true);
     }
 
     private boolean perGamemode() {

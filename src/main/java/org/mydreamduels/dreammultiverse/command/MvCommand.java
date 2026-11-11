@@ -342,9 +342,13 @@ public final class MvCommand {
                 }));
 
         router.add(Sub.of("modify").aliases("m").perm(P + "modify").min(2)
-                .usage("<world> <set|reset|add|remove|clear|list> [property] [value]").desc("Change a world setting")
+                .usage("<world|all> <set|reset|add|remove|clear|list> [property] [value]").desc("Change a world setting (all = every world)")
                 .tab((s, a) -> {
-                    if (a.length == 1) return worldNames();
+                    if (a.length == 1) {
+                        List<String> names = new ArrayList<>(worldNames());
+                        names.add(0, "all");
+                        return names;
+                    }
                     if (a.length == 2) return Tabs.of("set", "reset", "add", "remove", "clear", "list");
                     boolean listOp = a[1].equalsIgnoreCase("add") || a[1].equalsIgnoreCase("remove") || a[1].equalsIgnoreCase("clear");
                     if (a.length == 3) {
@@ -559,7 +563,21 @@ public final class MvCommand {
     }
 
     private void modify(CommandSender s, String[] a) {
-        MVWorld mv = world(a[0]);
+        // "all" / "*": the same change in every managed world
+        if (a[0].equalsIgnoreCase("all") || a[0].equals("*")) {
+            if (a[1].equalsIgnoreCase("list")) throw new UsageException("Pick one world to list its settings.");
+            int n = 0;
+            for (MVWorld mv : new ArrayList<>(plugin.worlds().all())) {
+                modify(s, mv, a);
+                n++;
+            }
+            Msg.ok(s, "Done in " + n + " world(s).");
+            return;
+        }
+        modify(s, world(a[0]), a);
+    }
+
+    private void modify(CommandSender s, MVWorld mv, String[] a) {
         String op = a[1].toLowerCase(Locale.ROOT);
         if (op.equals("list")) {
             for (MVWorld.Property p : MVWorld.properties().values()) {

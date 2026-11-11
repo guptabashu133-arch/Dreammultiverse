@@ -136,6 +136,10 @@ public final class InventoryCommand {
 
         router.add(Sub.of("list").perm(P + "info").desc("List groups")
                 .exec((s, a) -> {
+                    if (!inv.enabled()) {
+                        Msg.send(s, "&aShared mode: &7every player has the same inventory, ender chest, XP, health and hunger in every world. "
+                                + "&8(inventories.mode: groups in config.yml turns the groups below on)");
+                    }
                     if (inv.groups().isEmpty()) {
                         Msg.send(s, "&7No groups - every world keeps its own inventory.");
                         return;
