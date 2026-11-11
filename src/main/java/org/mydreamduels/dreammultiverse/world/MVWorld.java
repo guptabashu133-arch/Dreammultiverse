@@ -60,6 +60,11 @@ public final class MVWorld {
     private volatile double scale = 1.0;
     private final List<String> worldBlacklist = new CopyOnWriteArrayList<>();
     private volatile double[] spawn; // x, y, z, yaw, pitch - null = use the world's own spawn
+    /** "normal" = day/night cycle, else the time of day this world is frozen at (day, noon, night, midnight, ticks) */
+    private volatile String time = "normal";
+    private volatile boolean timeChanged;
+    private volatile boolean advancementMessages = true;
+    private volatile boolean advancementChanged;
 
     public MVWorld(String name) {
         this.name = name;
@@ -141,9 +146,40 @@ public final class MVWorld {
             if (d <= 0) throw new IllegalArgumentException("Scale must be above 0");
             w.scale = d;
         }, List.of("1", "8"));
+        prop("time", "Freeze the time of day: day, noon, sunset, night, midnight or ticks (normal = day/night cycle)",
+                w -> w.time, (w, v) -> {
+                    String t = v.toLowerCase(Locale.ROOT).trim();
+                    if (!t.equals("normal") && timeTicks(t) < 0) throw new IllegalArgumentException("Use normal, day, noon, sunset, night, midnight or a number 0-23999");
+                    if (!t.equals(w.time)) w.timeChanged = true;
+                    w.time = t;
+                }, List.of("normal", "day", "noon", "sunset", "night", "midnight"));
+        prop("advancementmessages", "Chat messages when someone gets an advancement", w -> str(w.advancementMessages), (w, v) -> {
+            boolean b = bool(v);
+            if (b != w.advancementMessages) w.advancementChanged = true;
+            w.advancementMessages = b;
+        }, BOOL);
         listProp("animalexceptions", "Animals that ignore the 'animals' rule", w -> w.animalExceptions);
         listProp("monsterexceptions", "Monsters that ignore the 'monsters' rule", w -> w.monsterExceptions);
         listProp("blacklist", "Worlds you can't come here from", w -> w.worldBlacklist);
+    }
+
+    /** day=1000, noon=6000, sunset=12000, night=13000, midnight=18000, or a number; -1 = not valid. */
+    static long timeTicks(String t) {
+        return switch (t) {
+            case "day", "morning" -> 1000;
+            case "noon" -> 6000;
+            case "sunset", "evening" -> 12000;
+            case "night" -> 13000;
+            case "midnight" -> 18000;
+            default -> {
+                try {
+                    long v = Long.parseLong(t);
+                    yield v >= 0 && v < 24000 ? v : -1;
+                } catch (NumberFormatException e) {
+                    yield -1;
+                }
+            }
+        };
     }
 
     public static Map<String, Property> properties() {
@@ -271,6 +307,21 @@ public final class MVWorld {
             world.setStorm(false);
             world.setThundering(false);
         }
+        // frozen time of day (kept after restarts: re-applied every time the world loads)
+        org.bukkit.GameRule<?> cycle = org.mydreamduels.dreammultiverse.util.GameRules.find("advance_time");
+        if (!"normal".equals(time)) {
+            if (cycle != null) org.mydreamduels.dreammultiverse.util.GameRules.set(world, cycle, "false");
+            world.setTime(timeTicks(time));
+        } else if (timeChanged && cycle != null) {
+            org.mydreamduels.dreammultiverse.util.GameRules.set(world, cycle, "true");
+        }
+        timeChanged = false;
+        // advancement chat messages: only touched when switched off here (or switched back on)
+        org.bukkit.GameRule<?> adv = org.mydreamduels.dreammultiverse.util.GameRules.find("show_advancement_messages");
+        if (adv != null && (!advancementMessages || advancementChanged)) {
+            org.mydreamduels.dreammultiverse.util.GameRules.set(world, adv, String.valueOf(advancementMessages));
+        }
+        advancementChanged = false;
     }
 
     public Location getSpawnLocation() {

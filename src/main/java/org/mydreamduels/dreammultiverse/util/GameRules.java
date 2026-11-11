@@ -23,10 +23,42 @@ public final class GameRules {
         return s.toLowerCase(Locale.ROOT).replace("minecraft:", "").replace("_", "");
     }
 
+    /**
+     * Minecraft 1.21.11 / 26.x renamed some gamerules (doDaylightCycle -> advance_time ...).
+     * Both names work on every version: old name <-> new name (compared without case and _).
+     */
+    private static final String[][] RENAMED = {
+            {"dodaylightcycle", "advancetime"},
+            {"doweathercycle", "advanceweather"},
+            {"announceadvancements", "showadvancementmessages"},
+            {"domobspawning", "spawnmobs"},
+            {"doinsomnia", "spawnphantoms"},
+            {"dopatrolspawning", "spawnpatrols"},
+            {"dotraderspawning", "spawnwanderingtraders"},
+            {"dowardenspawning", "spawnwardens"},
+            {"naturalregeneration", "naturalhealthregeneration"},
+            {"doimmediaterespawn", "immediaterespawn"},
+            {"dotiledrops", "blockdrops"},
+            {"doentitydrops", "entitydrops"},
+            {"dolimitedcrafting", "limitedcrafting"},
+            {"spawnradius", "respawnradius"},
+    };
+
     public static GameRule<?> find(String name) {
         GameRule<?> direct = GameRule.getByName(name);
         if (direct != null) return direct;
         String n = norm(name);
+        GameRule<?> r = byNorm(n);
+        if (r != null) return r;
+        for (String[] pair : RENAMED) {
+            if (pair[0].equals(n)) r = byNorm(pair[1]);
+            else if (pair[1].equals(n)) r = byNorm(pair[0]);
+            if (r != null) return r;
+        }
+        return null;
+    }
+
+    private static GameRule<?> byNorm(String n) {
         for (GameRule<?> r : GameRule.values()) {
             if (norm(r.getName()).equals(n) || norm(r.getKey().getKey()).equals(n)) return r;
         }
@@ -44,8 +76,12 @@ public final class GameRules {
     public static Map<GameRule<?>, Object> snapshot(World world) {
         Map<GameRule<?>, Object> out = new LinkedHashMap<>();
         for (GameRule<?> r : GameRule.values()) {
-            Object v = world.getGameRuleValue(r);
-            if (v != null) out.put(r, v);
+            try {
+                Object v = world.getGameRuleValue(r);
+                if (v != null) out.put(r, v);
+            } catch (RuntimeException ignored) {
+                // a rule this version doesn't have any more (renamed in 1.21.11 / 26.x)
+            }
         }
         return out;
     }
