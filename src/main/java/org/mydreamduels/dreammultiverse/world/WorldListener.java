@@ -148,6 +148,13 @@ public final class WorldListener implements Listener, WorldChangeTracker.Handler
             } catch (RuntimeException ignored) {
             }
         }
+        // DreamDuels puts a duel's dead player in the arena / at the duel spawn itself
+        for (org.bukkit.metadata.MetadataValue v : p.getMetadata("dream.keep-respawn")) {
+            try {
+                if (now - v.asLong() < 5_000) return true;
+            } catch (RuntimeException ignored) {
+            }
+        }
         return false;
     }
 
