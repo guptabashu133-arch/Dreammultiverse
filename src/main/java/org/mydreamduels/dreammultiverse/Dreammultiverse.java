@@ -183,7 +183,7 @@ public class Dreammultiverse extends JavaPlugin {
 
     /** Re-reads values that are cached outside getConfig(). */
     public void applyConfig() {
-        Msg.setPrefix(getConfig().getString("prefix", "&8[&bDreamMV&8] &r"));
+        Msg.setPrefix(getConfig().getString("chat-prefix", "&#FFC23D&lTARAASH&#FF9A2E&lMC &8» &r"));
         confirms = new ConfirmManager(getConfig().getLong("confirm-timeout-seconds", 15));
     }
 

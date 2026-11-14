@@ -107,6 +107,7 @@ public final class WorldListener implements Listener, WorldChangeTracker.Handler
     /** Paper/Spigot. */
     @EventHandler(priority = EventPriority.HIGH)
     public void onRespawn(PlayerRespawnEvent event) {
+        if (keptBySpawnPlugin(event.getPlayer())) return;
         Location redirect = respawnTarget(event.getPlayer(), event.getPlayer().getWorld(), event.isBedSpawn() || event.isAnchorSpawn());
         if (redirect != null) event.setRespawnLocation(redirect);
     }
@@ -130,11 +131,24 @@ public final class WorldListener implements Listener, WorldChangeTracker.Handler
             }
             if (player.isDead()) return;
             if (handle[0] != null) handle[0].cancel();
+            // a spawn plugin (DreamWorldEdit /setspawn) already chose where this player respawns
+            if (keptBySpawnPlugin(player)) return;
             boolean usedBed = bed != null && bed.getWorld() != null && bed.getWorld().equals(player.getWorld())
                     && bed.distanceSquared(player.getLocation()) < 16 * 16;
             Location redirect = respawnTarget(player, deathWorld, usedBed);
             if (redirect != null) plugin.teleports().teleportTo(Bukkit.getConsoleSender(), player, redirect, true, null, null);
         }, 5L, 5L);
+    }
+
+    private static boolean keptBySpawnPlugin(Player p) {
+        long now = System.currentTimeMillis();
+        for (org.bukkit.metadata.MetadataValue v : p.getMetadata("dream.spawn-respawn")) {
+            try {
+                if (now - v.asLong() < 10_000) return true;
+            } catch (RuntimeException ignored) {
+            }
+        }
+        return false;
     }
 
     /** Where a player who died in deathWorld should respawn, or null to leave vanilla's choice alone. */

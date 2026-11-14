@@ -39,19 +39,56 @@ public final class Msg {
     }
 
     public static void send(CommandSender to, String message) {
-        if (to != null) to.sendMessage(prefix + color(message));
+        if (to != null) deliver(to, prefix + color("&#F2F2F2" + message));
     }
 
     /** No prefix - for list rows, help lines etc. */
     public static void raw(CommandSender to, String message) {
-        if (to != null) to.sendMessage(color(message));
+        if (to != null) deliver(to, color(message));
     }
 
     public static void ok(CommandSender to, String message) {
-        send(to, "&a" + message);
+        send(to, "&#7CF5A6✔ &#F2F2F2" + message);
     }
 
     public static void err(CommandSender to, String message) {
-        send(to, "&c" + message);
+        send(to, "&#FF6B81✖ " + message);
+    }
+
+    private static volatile Boolean shadows;
+
+    /** Players get a solid black text shadow (the TaraashMC look); consoles get plain text. */
+    private static void deliver(CommandSender to, String legacy) {
+        if (to instanceof org.bukkit.entity.Player p && shadowsSupported()) {
+            try {
+                Shadow.send(p, legacy);
+                return;
+            } catch (Throwable t) {
+                shadows = false;
+            }
+        }
+        to.sendMessage(legacy);
+    }
+
+    private static boolean shadowsSupported() {
+        Boolean s = shadows;
+        if (s == null) {
+            try {
+                Class.forName("net.kyori.adventure.text.format.ShadowColor");
+                org.bukkit.entity.Player.class.getMethod("sendMessage", Class.forName("net.kyori.adventure.text.Component"));
+                s = true;
+            } catch (Throwable t) {
+                s = false;
+            }
+            shadows = s;
+        }
+        return s;
+    }
+
+    private static final class Shadow {
+        static void send(org.bukkit.entity.Player p, String legacy) {
+            p.sendMessage(net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection()
+                    .deserialize(legacy).shadowColor(net.kyori.adventure.text.format.ShadowColor.shadowColor(0xFF000000)));
+        }
     }
 }

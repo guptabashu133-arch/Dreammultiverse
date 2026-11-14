@@ -11,7 +11,8 @@
 #  inventories, signs) is fully supported on Folia.
 # ============================================================
 
-prefix: "&8[&bDreamMV&8] &r"
+# In front of every message (players also get a black text shadow).
+chat-prefix: "&#FFC23D&lTARAASH&#FF9A2E&lMC &8» &r"
 
 # ---------------- Core ----------------
 # Players need dreammultiverse.access.<world> to enter a world.
